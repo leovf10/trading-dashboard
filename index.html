@@ -1,1 +1,711 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<title>Trading Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid #1e293b;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+  .header p  { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+  /* ── Nav Tabs ── */
+  .nav {
+    display: flex;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    flex: 1; min-width: 80px;
+    padding: 12px 8px;
+    background: none; border: none;
+    color: #64748b; font-size: 11px;
+    cursor: pointer; text-align: center;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .nav-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+  .nav-btn .icon  { font-size: 18px; display: block; margin-bottom: 2px; }
+
+  /* ── Content ── */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid #334155;
+  }
+  .card-title {
+    font-size: 13px; font-weight: 600;
+    color: #94a3b8; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* ── Kapital Banner ── */
+  .kapital-banner {
+    background: linear-gradient(135deg, #0369a1, #0f172a);
+    border-radius: 12px; padding: 20px;
+    margin-bottom: 12px; text-align: center;
+  }
+  .kapital-banner .label { font-size: 12px; color: #7dd3fc; }
+  .kapital-banner .wert  { font-size: 36px; font-weight: 700; color: #f1f5f9; margin: 4px 0; }
+  .kapital-banner .delta { font-size: 14px; }
+
+  /* ── Stat Grid ── */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-box  {
+    background: #0f172a; border-radius: 8px;
+    padding: 12px; text-align: center;
+  }
+  .stat-box .s-label { font-size: 11px; color: #64748b; }
+  .stat-box .s-wert  { font-size: 20px; font-weight: 700; margin-top: 4px; }
+
+  /* ── Positionen ── */
+  .position-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #334155;
+  }
+  .position-item:last-child { border-bottom: none; }
+  .pos-left .ticker  { font-weight: 700; font-size: 15px; }
+  .pos-left .details { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .pos-right         { text-align: right; }
+  .pos-right .wert   { font-weight: 600; font-size: 15px; }
+  .pos-right .pct    { font-size: 12px; margin-top: 2px; }
+
+  /* ── Signal Karten ── */
+  .signal-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid #334155;
+  }
+  .signal-item:last-child { border-bottom: none; }
+  .sig-left .ticker  { font-weight: 700; font-size: 15px; }
+  .sig-left .details { font-size: 11px; color: #64748b; margin-top: 3px; }
+  .signal-badge {
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+  }
+  .badge-kauf    { background: #064e3b; color: #34d399; }
+  .badge-verkauf { background: #450a0a; color: #f87171; }
+  .badge-halten  { background: #1c1917; color: #a8a29e; }
+
+  /* ── Screening ── */
+  .screen-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid #334155;
+  }
+  .screen-item:last-child { border-bottom: none; }
+  .score-bar-wrap { width: 80px; }
+  .score-bar-bg   {
+    background: #334155; border-radius: 4px;
+    height: 6px; margin-top: 4px;
+  }
+  .score-bar-fill { height: 6px; border-radius: 4px; }
+
+  /* ── Risiko ── */
+  .risiko-item {
+    display: flex; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid #334155;
+    font-size: 14px;
+  }
+  .risiko-item:last-child { border-bottom: none; }
+  .risiko-item .label { color: #94a3b8; }
+  .risiko-item .wert  { font-weight: 600; }
+
+  /* ── Input Form ── */
+  .form-group { margin-bottom: 12px; }
+  .form-group label {
+    display: block; font-size: 12px;
+    color: #94a3b8; margin-bottom: 4px;
+  }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 12px;
+    background: #0f172a; border: 1px solid #334155;
+    border-radius: 8px; color: #f1f5f9;
+    font-size: 14px;
+  }
+  .btn {
+    width: 100%; padding: 12px;
+    background: #0369a1; color: white;
+    border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 4px;
+  }
+  .btn:active { background: #0284c7; }
+  .btn-gruen  { background: #065f46; }
+  .btn-gruen:active { background: #047857; }
+
+  /* ── Resultat Box ── */
+  .resultat-box {
+    background: #0f172a; border-radius: 10px;
+    padding: 14px; margin-top: 12px;
+    border: 1px solid #334155; display: none;
+  }
+  .resultat-box.show { display: block; }
+  .res-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid #1e293b;
+    font-size: 14px;
+  }
+  .res-row:last-child { border-bottom: none; }
+  .res-label { color: #94a3b8; }
+  .res-wert  { font-weight: 600; }
+
+  /* ── Farben ── */
+  .gruen    { color: #34d399; }
+  .rot      { color: #f87171; }
+  .blau     { color: #38bdf8; }
+  .gelb     { color: #fbbf24; }
+  .grau     { color: #94a3b8; }
+
+  /* ── Chart Bars ── */
+  .mini-chart { display: flex; align-items: flex-end; gap: 3px; height: 40px; margin-top: 8px; }
+  .mini-bar   { flex: 1; border-radius: 2px 2px 0 0; min-height: 4px; }
+
+  /* ── Refresh Button ── */
+  .refresh-btn {
+    background: #334155; border: none; color: #94a3b8;
+    padding: 6px 12px; border-radius: 6px;
+    font-size: 12px; cursor: pointer; float: right;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>📈 Trading Dashboard</h1>
+  <p id="letzteAktualisierung">Letzte Aktualisierung: –</p>
+</div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="zeigePage('portfolio', this)">
+    <span class="icon">💼</span>Portfolio
+  </button>
+  <button class="nav-btn" onclick="zeigePage('signale', this)">
+    <span class="icon">📊</span>Signale
+  </button>
+  <button class="nav-btn" onclick="zeigePage('screening', this)">
+    <span class="icon">🔍</span>Screening
+  </button>
+  <button class="nav-btn" onclick="zeigePage('risiko', this)">
+    <span class="icon">🛡️</span>Risiko
+  </button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     PAGE 1: PORTFOLIO
+══════════════════════════════════════════ -->
+<div id="page-portfolio" class="page active">
+
+  <div class="kapital-banner">
+    <div class="label">Gesamtvermögen</div>
+    <div class="wert" id="gesamtWert">CHF 1'000</div>
+    <div class="delta" id="gesamtDelta">–</div>
+  </div>
+
+  <div class="stat-grid" style="margin-bottom:12px">
+    <div class="stat-box">
+      <div class="s-label">Investiert</div>
+      <div class="s-wert blau" id="investiert">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">Cash</div>
+      <div class="s-wert gruen" id="cash">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">G/V heute</div>
+      <div class="s-wert" id="gvHeute">–</div>
+    </div>
+    <div class="stat-box">
+      <div class="s-label">Positionen</div>
+      <div class="s-wert" id="anzahlPos">–</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      Meine Positionen
+      <button class="refresh-btn" onclick="ladePortfolio()">↻ Refresh</button>
+    </div>
+    <div id="positionenListe">
+      <div style="text-align:center;color:#64748b;padding:20px">
+        Trage deine Positionen unten ein
+      </div>
+    </div>
+  </div>
+
+  <!-- Position hinzufügen -->
+  <div class="card">
+    <div class="card-title">➕ Position hinzufügen</div>
+    <div class="form-group">
+      <label>Ticker (z.B. AAPL)</label>
+      <input type="text" id="inp-ticker" placeholder="AAPL" style="text-transform:uppercase">
+    </div>
+    <div class="form-group">
+      <label>Anzahl Aktien</label>
+      <input type="number" id="inp-anzahl" placeholder="2" min="1">
+    </div>
+    <div class="form-group">
+      <label>Einstiegspreis (CHF/$)</label>
+      <input type="number" id="inp-einstieg" placeholder="182.50" step="0.01">
+    </div>
+    <button class="btn btn-gruen" onclick="positionHinzufuegen()">✅ Position speichern</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 2: SIGNALE
+══════════════════════════════════════════ -->
+<div id="page-signale" class="page">
+
+  <div class="card">
+    <div class="card-title">🔴 Verkauf Signale</div>
+    <div id="verkaufSignale">
+      <div class="signal-item">
+        <div class="sig-left">
+          <div class="ticker">TSLA</div>
+          <div class="details">RSI: 74 | MACD: Bearish | Score: 35</div>
+        </div>
+        <span class="signal-badge badge-verkauf">VERKAUF</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟢 Kauf Signale</div>
+    <div id="kaufSignale">
+      <div class="signal-item">
+        <div class="sig-left">
+          <div class="ticker">AAPL</div>
+          <div class="details">RSI: 45 | MACD: Bullish | Score: 80</div>
+        </div>
+        <span class="signal-badge badge-kauf">KAUF</span>
+      </div>
+      <div class="signal-item">
+        <div class="sig-left">
+          <div class="ticker">NVDA</div>
+          <div class="details">RSI: 52 | MACD: Bullish | Score: 75</div>
+        </div>
+        <span class="signal-badge badge-kauf">KAUF</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🟡 Halten</div>
+    <div id="haltenSignale">
+      <div class="signal-item">
+        <div class="sig-left">
+          <div class="ticker">SPY</div>
+          <div class="details">RSI: 58 | MACD: Neutral | Score: 55</div>
+        </div>
+        <span class="signal-badge badge-halten">HALTEN</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Signal manuell eintragen</div>
+    <div class="form-group">
+      <label>Ticker</label>
+      <input type="text" id="sig-ticker" placeholder="MSFT" style="text-transform:uppercase">
+    </div>
+    <div class="form-group">
+      <label>Signal</label>
+      <select id="sig-signal">
+        <option value="KAUF">🟢 KAUF</option>
+        <option value="HALTEN">🟡 HALTEN</option>
+        <option value="VERKAUF">🔴 VERKAUF</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>RSI Wert</label>
+      <input type="number" id="sig-rsi" placeholder="45" min="0" max="100">
+    </div>
+    <div class="form-group">
+      <label>Score (0-100)</label>
+      <input type="number" id="sig-score" placeholder="75" min="0" max="100">
+    </div>
+    <button class="btn" onclick="signalHinzufuegen()">📊 Signal speichern</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 3: SCREENING
+══════════════════════════════════════════ -->
+<div id="page-screening" class="page">
+
+  <div class="card">
+    <div class="card-title">🏆 Top Kandidaten heute</div>
+    <div id="screeningListe">
+      <div class="screen-item">
+        <div>
+          <div style="font-weight:700">NVDA</div>
+          <div style="font-size:11px;color:#64748b">Über MA20 & MA50 | MACD Bullish</div>
+        </div>
+        <div class="score-bar-wrap" style="text-align:right">
+          <div style="font-weight:700;color:#34d399">85</div>
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:85%;background:#34d399"></div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-item">
+        <div>
+          <div style="font-weight:700">AAPL</div>
+          <div style="font-size:11px;color:#64748b">Über MA20 | RSI Neutral</div>
+        </div>
+        <div class="score-bar-wrap" style="text-align:right">
+          <div style="font-weight:700;color:#34d399">75</div>
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:75%;background:#34d399"></div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-item">
+        <div>
+          <div style="font-weight:700">SPY</div>
+          <div style="font-size:11px;color:#64748b">Über MA50 | Volumen OK</div>
+        </div>
+        <div class="score-bar-wrap" style="text-align:right">
+          <div style="font-weight:700;color:#fbbf24">60</div>
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:60%;background:#fbbf24"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Screening Resultat eintragen</div>
+    <div class="form-group">
+      <label>Ticker</label>
+      <input type="text" id="scr-ticker" placeholder="AAPL" style="text-transform:uppercase">
+    </div>
+    <div class="form-group">
+      <label>Score (0-100)</label>
+      <input type="number" id="scr-score" placeholder="75" min="0" max="100">
+    </div>
+    <div class="form-group">
+      <label>Notiz / Signale</label>
+      <input type="text" id="scr-notiz" placeholder="Über MA20, MACD Bullish...">
+    </div>
+    <button class="btn" onclick="screeningHinzufuegen()">🔍 Eintragen</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PAGE 4: RISIKO CHECK
+══════════════════════════════════════════ -->
+<div id="page-risiko" class="page">
+
+  <div class="card">
+    <div class="card-title">⚙️ Risiko Kalkulator</div>
+    <div class="form-group">
+      <label>Mein Kapital (CHF)</label>
+      <input type="number" id="ris-kapital" placeholder="1000" value="1000">
+    </div>
+    <div class="form-group">
+      <label>Aktueller Preis ($)</label>
+      <input type="number" id="ris-preis" placeholder="182.50" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>ATR (aus Jupyter)</label>
+      <input type="number" id="ris-atr" placeholder="3.50" step="0.01">
+    </div>
+    <div class="form-group">
+      <label>Risiko pro Trade</label>
+      <select id="ris-risiko">
+        <option value="0.01">1% (konservativ)</option>
+        <option value="0.02" selected>2% (empfohlen)</option>
+        <option value="0.03">3% (aggressiv)</option>
+      </select>
+    </div>
+    <button class="btn" onclick="berechneRisiko()">🛡️ Risiko berechnen</button>
+
+    <div class="resultat-box" id="risikoResultat">
+      <div class="res-row">
+        <span class="res-label">Stop-Loss</span>
+        <span class="res-wert rot" id="res-sl">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Take-Profit (1:2)</span>
+        <span class="res-wert gruen" id="res-tp1">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Take-Profit (1:3)</span>
+        <span class="res-wert gruen" id="res-tp2">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Anzahl Aktien</span>
+        <span class="res-wert blau" id="res-anzahl">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Investitionsbetrag</span>
+        <span class="res-wert" id="res-invest">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Max. Verlust</span>
+        <span class="res-wert rot" id="res-verlust">–</span>
+      </div>
+      <div class="res-row">
+        <span class="res-label">Portfolio-Anteil</span>
+        <span class="res-wert" id="res-anteil">–</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Risikoregeln</div>
+    <div class="risiko-item">
+      <span class="res-label">Max. Risiko / Trade</span>
+      <span class="res-wert gelb">2% = CHF 20</span>
+    </div>
+    <div class="risiko-item">
+      <span class="res-label">Max. Portfolio-Risiko</span>
+      <span class="res-wert gelb">6% = CHF 60</span>
+    </div>
+    <div class="risiko-item">
+      <span class="res-label">Max. Positionen</span>
+      <span class="res-wert gelb">5 gleichzeitig</span>
+    </div>
+    <div class="risiko-item">
+      <span class="res-label">Stop-Loss Distanz</span>
+      <span class="res-wert gelb">1.5x ATR</span>
+    </div>
+    <div class="risiko-item">
+      <span class="res-label">Min. Chance/Risiko</span>
+      <span class="res-wert gelb">1:2 RRR</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATEN STORAGE
+// ══════════════════════════════════════════
+let positionen = JSON.parse(localStorage.getItem('positionen') || '[]');
+let signale    = JSON.parse(localStorage.getItem('signale')    || '[]');
+let screening  = JSON.parse(localStorage.getItem('screening')  || '[]');
+const STARTKAPITAL = 1000;
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function zeigePage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// PORTFOLIO
+// ══════════════════════════════════════════
+function positionHinzufuegen() {
+  const ticker   = document.getElementById('inp-ticker').value.toUpperCase().trim();
+  const anzahl   = parseFloat(document.getElementById('inp-anzahl').value);
+  const einstieg = parseFloat(document.getElementById('inp-einstieg').value);
+
+  if (!ticker || !anzahl || !einstieg) {
+    alert('Bitte alle Felder ausfüllen!'); return;
+  }
+
+  positionen.push({ ticker, anzahl, einstieg, datum: new Date().toLocaleDateString('de-CH') });
+  localStorage.setItem('positionen', JSON.stringify(positionen));
+
+  document.getElementById('inp-ticker').value   = '';
+  document.getElementById('inp-anzahl').value   = '';
+  document.getElementById('inp-einstieg').value = '';
+
+  ladePortfolio();
+}
+
+function ladePortfolio() {
+  const liste = document.getElementById('positionenListe');
+
+  if (positionen.length === 0) {
+    liste.innerHTML = '<div style="text-align:center;color:#64748b;padding:20px">Noch keine Positionen</div>';
+    document.getElementById('gesamtWert').textContent = `CHF ${STARTKAPITAL.toLocaleString('de-CH')}`;
+    document.getElementById('investiert').textContent = 'CHF 0';
+    document.getElementById('cash').textContent       = `CHF ${STARTKAPITAL}`;
+    document.getElementById('gvHeute').textContent    = '–';
+    document.getElementById('anzahlPos').textContent  = '0';
+    return;
+  }
+
+  let totalInvest = 0;
+  let html = '';
+
+  positionen.forEach((pos, i) => {
+    const invest = pos.einstieg * pos.anzahl;
+    totalInvest += invest;
+    // Simulierte Performance (in echter Version: aus Jupyter CSV laden)
+    const simPerf = ((Math.random() * 10) - 3).toFixed(2);
+    const aktuell = (pos.einstieg * (1 + simPerf/100)).toFixed(2);
+    const gv      = ((aktuell - pos.einstieg) * pos.anzahl).toFixed(2);
+    const gvPct   = simPerf;
+    const farbe   = gv >= 0 ? 'gruen' : 'rot';
+    const pfeil   = gv >= 0 ? '▲' : '▼';
+
+    html += `
+      <div class="position-item">
+        <div class="pos-left">
+          <div class="ticker">${pos.ticker}</div>
+          <div class="details">${pos.anzahl} Stk. · Einstieg $${pos.einstieg} · ${pos.datum}</div>
+        </div>
+        <div class="pos-right">
+          <div class="wert">$${aktuell}</div>
+          <div class="pct ${farbe}">${pfeil} ${gvPct}%</div>
+        </div>
+      </div>`;
+  });
+
+  liste.innerHTML = html;
+
+  const cash = STARTKAPITAL - totalInvest;
+  document.getElementById('investiert').textContent  = `CHF ${totalInvest.toFixed(0)}`;
+  document.getElementById('cash').textContent        = `CHF ${Math.max(0, cash).toFixed(0)}`;
+  document.getElementById('anzahlPos').textContent   = positionen.length;
+  document.getElementById('gesamtWert').textContent  = `CHF ${STARTKAPITAL.toLocaleString('de-CH')}`;
+  document.getElementById('gesamtDelta').textContent = '📊 Paper Trading Modus';
+  document.getElementById('gesamtDelta').className   = 'delta blau';
+
+  document.getElementById('letzteAktualisierung').textContent =
+    'Letzte Aktualisierung: ' + new Date().toLocaleTimeString('de-CH');
+}
+
+// ══════════════════════════════════════════
+// SIGNALE
+// ══════════════════════════════════════════
+function signalHinzufuegen() {
+  const ticker = document.getElementById('sig-ticker').value.toUpperCase().trim();
+  const signal = document.getElementById('sig-signal').value;
+  const rsi    = document.getElementById('sig-rsi').value;
+  const score  = document.getElementById('sig-score').value;
+
+  if (!ticker) { alert('Ticker eingeben!'); return; }
+
+  signale.push({ ticker, signal, rsi, score, datum: new Date().toLocaleDateString('de-CH') });
+  localStorage.setItem('signale', JSON.stringify(signale));
+
+  const ziel   = signal === 'KAUF' ? 'kaufSignale' : signal === 'VERKAUF' ? 'verkaufSignale' : 'haltenSignale';
+  const badge  = signal === 'KAUF' ? 'badge-kauf' : signal === 'VERKAUF' ? 'badge-verkauf' : 'badge-halten';
+  const emoji  = signal === 'KAUF' ? '🟢' : signal === 'VERKAUF' ? '🔴' : '🟡';
+
+  const div = document.getElementById(ziel);
+  div.innerHTML += `
+    <div class="signal-item">
+      <div class="sig-left">
+        <div class="ticker">${ticker}</div>
+        <div class="details">RSI: ${rsi} | Score: ${score} | ${new Date().toLocaleDateString('de-CH')}</div>
+      </div>
+      <span class="signal-badge ${badge}">${emoji} ${signal}</span>
+    </div>`;
+
+  document.getElementById('sig-ticker').value = '';
+  document.getElementById('sig-rsi').value    = '';
+  document.getElementById('sig-score').value  = '';
+}
+
+// ══════════════════════════════════════════
+// SCREENING
+// ══════════════════════════════════════════
+function screeningHinzufuegen() {
+  const ticker = document.getElementById('scr-ticker').value.toUpperCase().trim();
+  const score  = parseInt(document.getElementById('scr-score').value);
+  const notiz  = document.getElementById('scr-notiz').value;
+
+  if (!ticker || !score) { alert('Ticker und Score eingeben!'); return; }
+
+  const farbe = score >= 70 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
+  const liste = document.getElementById('screeningListe');
+
+  liste.innerHTML += `
+    <div class="screen-item">
+      <div>
+        <div style="font-weight:700">${ticker}</div>
+        <div style="font-size:11px;color:#64748b">${notiz}</div>
+      </div>
+      <div class="score-bar-wrap" style="text-align:right">
+        <div style="font-weight:700;color:${farbe}">${score}</div>
+        <div class="score-bar-bg">
+          <div class="score-bar-fill" style="width:${score}%;background:${farbe}"></div>
+        </div>
+      </div>
+    </div>`;
+
+  screening.push({ ticker, score, notiz, datum: new Date().toLocaleDateString('de-CH') });
+  localStorage.setItem('screening', JSON.stringify(screening));
+
+  document.getElementById('scr-ticker').value = '';
+  document.getElementById('scr-score').value  = '';
+  document.getElementById('scr-notiz').value  = '';
+}
+
+// ══════════════════════════════════════════
+// RISIKO KALKULATOR
+// ══════════════════════════════════════════
+function berechneRisiko() {
+  const kapital  = parseFloat(document.getElementById('ris-kapital').value);
+  const preis    = parseFloat(document.getElementById('ris-preis').value);
+  const atr      = parseFloat(document.getElementById('ris-atr').value);
+  const risikoPct = parseFloat(document.getElementById('ris-risiko').value);
+
+  if (!kapital || !preis || !atr) { alert('Alle Felder ausfüllen!'); return; }
+
+  const stopDist   = 1.5 * atr;
+  const stopLoss   = (preis - stopDist).toFixed(2);
+  const tp1        = (preis + 2 * stopDist).toFixed(2);
+  const tp2        = (preis + 3 * stopDist).toFixed(2);
+  const risikoChf  = kapital * risikoPct;
+  const anzahl     = Math.floor(risikoChf / stopDist);
+  const invest     = (anzahl * preis).toFixed(2);
+  const verlust    = (anzahl * stopDist).toFixed(2);
+  const anteil     = ((invest / kapital) * 100).toFixed(1);
+
+  document.getElementById('res-sl').textContent      = `$${stopLoss}`;
+  document.getElementById('res-tp1').textContent     = `$${tp1}`;
+  document.getElementById('res-tp2').textContent     = `$${tp2}`;
+  document.getElementById('res-anzahl').textContent  = `${anzahl} Stück`;
+  document.getElementById('res-invest').textContent  = `CHF ${invest}`;
+  document.getElementById('res-verlust').textContent = `CHF ${verlust}`;
+  document.getElementById('res-anteil').textContent  = `${anteil}%`;
+
+  document.getElementById('risikoResultat').classList.add('show');
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+ladePortfolio();
+</script>
+</body>
+</html>
